@@ -30,27 +30,30 @@ module Zodiac
         
         # if the migration was applied, we should update the sign attribute before each save
         # and define some scopes
-        if self.column_names.include?(@zodiac_sign_id_field.to_s)
-          self.before_save do |object|
-            object.send(:update_sign_id)
-          end
-          
-          # Person.by_zodiac(7 || :libra) == Person.where(:zodiac_sign_id => 7)
-          scope :by_zodiac, lambda { |sign|
-            case sign
-            when Symbol
-              where(self.zodiac_sign_id_field => Zodiac::Finder::SIGN_IDS[sign])
-            when Fixnum
-              where(self.zodiac_sign_id_field => sign)
-            else
-              raise ArgumentError, "Invalid attribute type #{sign.class} for #{self}.by_zodiac"
+        begin
+          if self.column_names.include?(@zodiac_sign_id_field.to_s)
+            self.before_save do |object|
+              object.send(:update_sign_id)
             end
-          }
           
-          # Person.gemini == Person.by_zodiac(3)
-          Zodiac.each_sign do |symbol, integer|
-            scope symbol, by_zodiac(integer)
+            # Person.by_zodiac(7 || :libra) == Person.where(:zodiac_sign_id => 7)
+            scope :by_zodiac, lambda { |sign|
+              case sign
+              when Symbol
+                where(self.zodiac_sign_id_field => Zodiac::Finder::SIGN_IDS[sign])
+              when Fixnum
+                where(self.zodiac_sign_id_field => sign)
+              else
+                raise ArgumentError, "Invalid attribute type #{sign.class} for #{self}.by_zodiac"
+              end
+            }
+          
+            # Person.gemini == Person.by_zodiac(3)
+            Zodiac.each_sign do |symbol, integer|
+              scope symbol, by_zodiac(integer)
+            end
           end
+        rescue PGError
         end
       end
     end
